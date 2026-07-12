@@ -22,6 +22,15 @@ A cross-platform Flutter client for the **Music Detector Backend**, providing a 
 
 ---
 
+## Screenshots
+
+<p align="center">
+  <img src="assets/screenshots/dark-mode.png" width="47%">
+  <img src="assets/screenshots/light-mode.png" width="47%">
+</p>
+
+---
+
 ## Backend API
 
 This client communicates with the Music Detector Backend through two endpoints.
@@ -164,7 +173,7 @@ flutter run -d chrome
 - [x] Genre display
 - [x] Shazam links
 - [x] Responsive layouts
-- [ ] UI polishing
+- [x] UI polishing
 - [ ] Recognition history
 - [ ] Android support
 - [ ] Windows support
