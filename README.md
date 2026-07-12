@@ -103,7 +103,7 @@ flutter run -d chrome
 [x] Genre display
 [x] URL recognition
 [x] Responsive layouts
-[x] Aesthetics layouts
+[ ] Aesthetics layouts
 [ ] Recognition history
 [ ] Android support
 [ ] Windows support
