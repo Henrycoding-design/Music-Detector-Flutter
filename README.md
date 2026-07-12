@@ -1,4 +1,4 @@
-# Music Detector Client
+# Music Finder
 
 A cross-platform Flutter client for the **Music Detector Backend**, providing a clean and responsive interface for identifying songs from either uploaded audio files or public media URLs.
 
