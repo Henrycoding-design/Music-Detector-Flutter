@@ -89,30 +89,26 @@ Run on Chrome:
 flutter run -d chrome
 ```
 
-## Current Status
+## Roadmap
 
-Current implementation includes:
-
-* Basic Material UI
-* Audio file picker
-* Multipart file upload
-* Backend communication
-* Recognition result parsing
-* Error handling
-* Recognition result cards
-
-## Planned Features
-
-* Album artwork display
-* Shazam links
-* Genre display
-* URL recognition
-* Recognition history
-* Responsive layouts
-* Android support
-* Windows support
-* iOS support
-* Desktop packaging
+[x] Basic Material UI
+[x] Audio file picker
+[x] Multipart file upload
+[x] Backend communication
+[x] Recognition result parsing
+[x] Error handling
+[x] Recognition result cards
+[x] Album artwork display
+[x] Shazam links
+[x] Genre display
+[x] URL recognition
+[x] Responsive layouts
+[x] Aesthetics layouts
+[ ] Recognition history
+[ ] Android support
+[ ] Windows support
+[ ] iOS support
+[ ] Desktop packaging
 
 ## License
 
