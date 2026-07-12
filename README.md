@@ -91,24 +91,24 @@ flutter run -d chrome
 
 ## Roadmap
 
-[x] Basic Material UI
-[x] Audio file picker
-[x] Multipart file upload
-[x] Backend communication
-[x] Recognition result parsing
-[x] Error handling
-[x] Recognition result cards
-[x] Album artwork display
-[x] Shazam links
-[x] Genre display
-[x] URL recognition
-[x] Responsive layouts
-[ ] Aesthetics layouts
-[ ] Recognition history
-[ ] Android support
-[ ] Windows support
-[ ] iOS support
-[ ] Desktop packaging
+* [x] Basic Material UI
+* [x] Audio file picker
+* [x] Multipart file upload
+* [x] Backend communication
+* [x] Recognition result parsing
+* [x] Error handling
+* [x] Recognition result cards
+* [x] Album artwork display
+* [x] Shazam links
+* [x] Genre display
+* [x] URL recognition
+* [x] Responsive layouts
+* [ ] Aesthetics layouts
+* [ ] Recognition history
+* [ ] Android support
+* [ ] Windows support
+* [ ] iOS support
+* [ ] Desktop packaging
 
 ## License
 
