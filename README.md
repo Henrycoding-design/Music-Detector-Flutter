@@ -37,7 +37,8 @@ Music Finder provides a modern, responsive interface for identifying songs from 
   - Direct Shazam link
 - Reliable backend communication with graceful error handling.
 
-> [!NOTE] Recognition history is stored locally on the device, allowing recent searches to remain available after refreshing or reopening the application.
+> [!NOTE] 
+> Recognition history is stored locally on the device, allowing recent searches to remain available after refreshing or reopening the application.
 
 ## Gallery
 
@@ -140,7 +141,8 @@ const String.fromEnvironment(
 );
 ```
 
-> [!NOTE] If `API_BASE_URL` is not provided, the application automatically connects to `http://localhost:3000`.
+> [!NOTE] 
+> If `API_BASE_URL` is not provided, the application automatically connects to `http://localhost:3000`.
 
 ### Local Development
 
