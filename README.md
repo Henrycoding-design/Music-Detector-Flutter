@@ -1,78 +1,86 @@
-# 🎵 Music Finder
+<h1 align="center">🎵 Music Finder</h1>
 
-A cross-platform Flutter client for the **Music Detector Backend**, providing a clean, beautiful, and responsive interface for identifying songs from either uploaded audio files or public media URLs.
+<p align="center">
+A cross-platform Flutter client for recognizing music from local audio files and public media URLs.
+Designed with Material Design 3 and built to work seamlessly with the <a href="https://github.com/Henrycoding-design/Music-Detector-Backend">Music Detector Backend</a>.
+</p>
 
-![Flutter](https://img.shields.io/badge/Flutter-%2302569B.svg?style=for-the-badge&logo=Flutter&logoColor=white) ![Dart](https://img.shields.io/badge/dart-%230175C2.svg?style=for-the-badge&logo=dart&logoColor=white) ![Material Design](https://img.shields.io/badge/Material--Design-3-%23757575?style=for-the-badge&logo=materialdesign&logoColor=white) ![Platform](https://img.shields.io/badge/Platform-Web%20%7C%20Android%20%7C%20iOS-blue?style=for-the-badge) ![License](https://img.shields.io/badge/license-MIT-green.svg?style=for-the-badge)
+<p align="center">
+  <img src="https://img.shields.io/badge/Flutter-%2302569B.svg?style=for-the-badge&logo=Flutter&logoColor=white">
+  <img src="https://img.shields.io/badge/Dart-%230175C2.svg?style=for-the-badge&logo=dart&logoColor=white">
+  <img src="https://img.shields.io/badge/Material%20Design%203-757575?style=for-the-badge&logo=materialdesign&logoColor=white">
+  <img src="https://img.shields.io/badge/Web%20%7C%20Android%20%7C%20iOS-blue?style=for-the-badge">
+  <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge">
+</p>
 
 ---
 
-## ✨ Features
+## Overview
 
-- 🎵 **Audio File Upload:** Upload audio files straight from your local device storage.
-- 🔗 **Smart Link Recognition:** Recognize songs directly from public media links (YouTube, TikTok, Instagram, SoundCloud, etc.).
-- 🌐 **Web Ready:** Built-in Flutter Web support (fully tested on Google Chrome).
-- 📡 **Seamless Communication:** Connects instantly with the Music Detector Backend via secure HTTP.
-- 🎨 **Responsive UI:** Modern Material Design 3 interface featuring dynamic audio file and URL recognition tabs.
-- 🕒 **Search History:** Remembers up to the **20 most recent successful searches** locally for lightning-fast access.
-- 📝 **Rich Results:** Displays detailed metadata including:
-  - Song title & Artist
-  - Album & Release date
-  - Dynamic Album Artwork
-  - Genres & Confidence score
+Music Finder provides a modern, responsive interface for identifying songs from either uploaded audio files or publicly accessible media URLs. The application communicates with the [Music Detector Backend](https://github.com/Henrycoding-design/Music-Detector-Backend) through a lightweight HTTP API and presents detailed recognition results in a clean, intuitive interface.
+
+## Features
+
+- Upload audio files directly from your device.
+- Recognize songs from public media URLs including YouTube, TikTok, Instagram, and SoundCloud.
+- Responsive Material Design 3 interface.
+- Flutter Web support with desktop and mobile compatibility.
+- Local recognition history storing the 20 most recent successful searches.
+- Rich recognition results including:
+  - Song title
+  - Artist
+  - Album
+  - Release date
+  - Album artwork
+  - Genres
+  - Confidence score
   - Direct Shazam link
-- ⚠️ **Error Resilient:** Graceful backend error handling with interactive UI notifications.
+- Reliable backend communication with graceful error handling.
 
-> ℹ️ **NOTE**
-> The local history is stored on-device, meaning your recent searches are preserved even if you refresh or reopen the app.
+> [!NOTE] Recognition history is stored locally on the device, allowing recent searches to remain available after refreshing or reopening the application.
 
----
-
-## 📸 Screenshots
+## Gallery
 
 <p align="center">
-  <img src="assets/screenshots/dark-mode2.png" width="47%" alt="Dark Mode Home">
-  <img src="assets/screenshots/light-mode1.png" width="47%" alt="Light Mode Home">
+  <img src="assets/screenshots/dark-mode2.png" width="47%" alt="Dark Home">
+  <img src="assets/screenshots/light-mode1.png" width="47%" alt="Light Home">
 </p>
+
 <p align="center">
-  <img src="assets/screenshots/dark-mode3.png" width="47%" alt="Dark Mode Recognition">
-  <img src="assets/screenshots/light-mode2.png" width="47%" alt="Light Mode Recognition">
+  <img src="assets/screenshots/dark-mode3.png" width="47%" alt="Recognition">
+  <img src="assets/screenshots/light-mode2.png" width="47%" alt="Recognition">
 </p>
+
 <p align="center">
-  <img src="assets/screenshots/dark-mode4.png" width="47%" alt="Dark Mode History">
-  <img src="assets/screenshots/light-mode3.png" width="47%" alt="Light Mode History">
-</p>
-<p align="center">
-  <img src="assets/screenshots/dark-mode1.png" width="95%" alt="Dark Mode Detailed View">
+  <img src="assets/screenshots/dark-mode4.png" width="47%" alt="History">
+  <img src="assets/screenshots/light-mode3.png" width="47%" alt="History">
 </p>
 
----
+## Backend API
 
-## 🖥️ Backend API
+Music Finder communicates with the Music Detector Backend using two endpoints.
 
-This client communicates with the Music Detector Backend through two core endpoints.
+### Audio Recognition
 
-### 🗄️ 1. Audio File Recognition
 ```http
 POST /recognize
 Content-Type: multipart/form-data
 
 file=<audio file>
-
 ```
 
-### 🌐 2. URL Recognition
+### URL Recognition
 
 ```http
 POST /urlRecognize
 Content-Type: application/json
 
 {
-  "url": "[https://www.youtube.com/watch?v=dQw4w9WgXcQ](https://www.youtube.com/watch?v=dQw4w9WgXcQ)"
+  "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 }
-
 ```
 
-Both endpoints return an identical recognition response structure:
+Both endpoints return the same response structure.
 
 ```json
 {
@@ -90,21 +98,19 @@ Both endpoints return an identical recognition response structure:
     }
   ]
 }
-
 ```
 
----
+## Tech Stack
 
-## 🛠️ Tech Stack
+| Component | Technology |
+|------------|------------|
+| Framework | Flutter |
+| Language | Dart |
+| UI | Material Design 3 |
+| Networking | HTTP |
+| Packages | file_picker, url_launcher, shared_preferences |
 
-* **Framework:** Flutter & Dart
-* **UI Design:** Material Design 3
-* **Networking:** HTTP
-* **Utilities:** `file_picker`, `url_launcher`
-
----
-
-## 📂 Project Structure
+## Project Structure
 
 ```text
 lib/
@@ -113,106 +119,73 @@ lib/
 │   ├── history_item.dart
 │   └── parse_result.dart
 ├── screens/
-│   ├── home_screen.dart
-│   ├── recognition_page.dart
 │   ├── history_page.dart
-│   └── loading_animation.dart
+│   ├── home_screen.dart
+│   ├── loading_animation.dart
+│   └── recognition_page.dart
 └── services/
     ├── api_service.dart
     ├── history_service.dart
     └── parse_result.dart
-
 ```
 
----
+## Configuration
 
-## ⚙️ Configuration
-
-The backend URL must be injected at compile-time using Flutter's `--dart-define` property.
+The backend URL is injected at compile time using Flutter's `--dart-define` option.
 
 ```dart
 const String.fromEnvironment(
   'API_BASE_URL',
   defaultValue: 'http://localhost:3000',
 );
-
 ```
 
-⚠️ **IMPORTANT**
+> [!NOTE] If `API_BASE_URL` is not provided, the application automatically connects to `http://localhost:3000`.
 
-> If you omit the `--dart-define` flag during compilation or runtime, the application will default to `http://localhost:3000`. Ensure your backend service is running there during local development.
-
-### 💻 Local Development
+### Local Development
 
 ```bash
 flutter run -d chrome \
   --dart-define=API_BASE_URL=http://localhost:3000
-
 ```
 
-*Alternatively, you can configure this environment variable directly inside your `.vscode/launch.json` configuration profile.*
+You can also configure this value through `.vscode/launch.json`.
 
-### 🚀 Production Deployment
-
-When deploying to web hosts (like Vercel, Netlify, etc.), set up your environment variable:
-
-```text
-API_BASE_URL=https://your-backend.example.com
-
-```
-
-Then build the application release using:
+### Production
 
 ```bash
 flutter build web \
   --release \
-  --dart-define=API_BASE_URL=$API_BASE_URL
-
+  --dart-define=API_BASE_URL=https://your-backend.example.com
 ```
 
----
+## Getting Started
 
-## 🚀 Getting Started
+Install project dependencies.
 
-Follow these steps to get your local environment up and running.
-
-1. **Install dependencies:**
 ```bash
 flutter pub get
-
 ```
 
+Run the application.
 
-2. **Run the application:**
 ```bash
 flutter run -d chrome
-
 ```
 
+## Roadmap
 
+- [x] Basic UI interface
+- [x] Audio file recognition
+- [x] URL recognition
+- [x] Backend integration
+- [x] Recognition history
+- [x] Album artwork
+- [x] Genre support
+- [x] Responsive layouts
+- [x] Robust error handling
+- [ ] Production deployment
 
----
+## License
 
-## 🗺️ Roadmap
-
-* [x] Basic Material UI
-* [x] Audio file picker
-* [x] Multipart file upload
-* [x] URL recognition
-* [x] Backend communication
-* [x] Recognition result parsing
-* [x] Error handling
-* [x] Recognition result cards
-* [x] Album artwork display
-* [x] Genre display
-* [x] Shazam links
-* [x] Responsive layouts
-* [x] UI polishing
-* [x] Recognition history
-* [ ] Production Deployment
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is released under the MIT License. See the [LICENSE](LICENSE) file for more information.
