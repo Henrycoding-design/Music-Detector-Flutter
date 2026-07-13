@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
 
 class GlowingLoadingIndicator extends StatefulWidget {
-  const GlowingLoadingIndicator({super.key});
+  final String title;
+  final String? subtitle;
+
+  const GlowingLoadingIndicator({
+    super.key,
+    this.title = "Recognizing song...",
+    this.subtitle = "This may take up to 2 minutes for some URLs.",
+  });
 
   @override
   State<GlowingLoadingIndicator> createState() => _GlowingLoadingIndicatorState();
@@ -55,7 +62,7 @@ class _GlowingLoadingIndicatorState extends State<GlowingLoadingIndicator>
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: primaryColor.withOpacity(0.4 * _glowAnimation.value),
+                      color: primaryColor.withValues(alpha: 0.4 * _glowAnimation.value),
                       blurRadius: blurRadius,
                       spreadRadius: _glowAnimation.value * 4,
                     ),
@@ -67,7 +74,7 @@ class _GlowingLoadingIndicatorState extends State<GlowingLoadingIndicator>
                   child: CircularProgressIndicator(
                     strokeWidth: 4,
                     valueColor: AlwaysStoppedAnimation<Color>(
-                      primaryColor.withOpacity(opacity),
+                      primaryColor.withValues(alpha: opacity),
                     ),
                   ),
                 ),
@@ -76,23 +83,25 @@ class _GlowingLoadingIndicatorState extends State<GlowingLoadingIndicator>
               
               // Pulsing Informative Text
               Text(
-                "Recognizing song...",
+                widget.title,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: primaryColor.withOpacity(opacity),
+                  color: primaryColor.withValues(alpha: opacity),
                 ),
               ),
-              const SizedBox(height: 6),
-              Text(
-                "This may take up to 2 minutes for some URLs.",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.6 * opacity),
+              if (widget.subtitle != null && widget.subtitle!.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  widget.subtitle!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.6 * opacity),
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
         );

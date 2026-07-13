@@ -1,26 +1,5 @@
-class SongGuess {
-  final double confidence;
-  final String title;
-  final String artist;
-  final String album;
-  final String? releaseDate;
-  final String? isrc;
-  final List<String> genres;
-  final String? cover;
-  final String? shazamUrl;
-
-  SongGuess({
-    required this.confidence,
-    required this.title,
-    required this.artist,
-    required this.album,
-    this.releaseDate,
-    this.isrc,
-    required this.genres,
-    this.cover,
-    this.shazamUrl,
-  });
-}
+import '../models/parse_result.dart';
+export '../models/parse_result.dart';
 
 class ResultParser {
   static List<SongGuess> parse(Map<String, dynamic> json) {
@@ -36,7 +15,7 @@ class ResultParser {
       throw Exception('No matches found for uploaded audio.');
     }
 
-    return results.map((item) {
+    final guesses = results.map((item) {
       final recording = item['recording'] as Map<String, dynamic>? ?? {};
 
       return SongGuess(
@@ -51,5 +30,9 @@ class ResultParser {
         shazamUrl: item['shazamUrl'],
       );
     }).toList();
+
+    guesses.sort((a,b) => b.confidence.compareTo(a.confidence));
+
+    return guesses;
   }
 }

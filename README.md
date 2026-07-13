@@ -9,6 +9,7 @@ A cross-platform Flutter client for the **Music Detector Backend**, providing a 
 - 🌐 Flutter Web support (currently tested on Google Chrome)
 - 📡 Communicates with the Music Detector Backend via HTTP
 - 🎨 Responsive Material Design interface with audio file and URL recognition tabs
+- 🕒 Built-in recognition history that stores up to the **20 most recent successful searches** locally for quick access
 - 📝 Displays recognition results including:
   - Song title
   - Artist
@@ -25,10 +26,20 @@ A cross-platform Flutter client for the **Music Detector Backend**, providing a 
 ## Screenshots
 
 <p align="center">
-  <img src="assets/screenshots/dark-mode.png" width="47%">
-  <img src="assets/screenshots/light-mode.png" width="47%">
+  <img src="assets/screenshots/dark-mode2.png" width="47%">
+  <img src="assets/screenshots/light-mode1.png" width="47%">
 </p>
-
+<p align="center">
+  <img src="assets/screenshots/dark-mode3.png" width="47%">
+  <img src="assets/screenshots/light-mode2.png" width="47%">
+</p>
+<p align="center">
+  <img src="assets/screenshots/dark-mode4.png" width="47%">
+  <img src="assets/screenshots/light-mode3.png" width="47%">
+</p>
+<p align="center">
+  <img src="assets/screenshots/dark-mode1.png">
+</p>
 ---
 
 ## Backend API
@@ -95,11 +106,17 @@ Example response:
 ```text
 lib/
 ├── main.dart
+├── models/
+│   ├── history_item.dart
+│   └── parse_result.dart
 ├── screens/
-|   ├── home_screen.dart
+│   ├── home_screen.dart
+│   ├── recognition_page.dart
+│   ├── history_page.dart
 │   └── loading_animation.dart
 └── services/
     ├── api_service.dart
+    ├── history_service.dart
     └── parse_result.dart
 ```
 
@@ -174,11 +191,8 @@ flutter run -d chrome
 - [x] Shazam links
 - [x] Responsive layouts
 - [x] UI polishing
-- [ ] Recognition history
-- [ ] Android support
-- [ ] Windows support
-- [ ] iOS support
-- [ ] Desktop packaging
+- [x] Recognition history
+- [ ] Deployment
 
 ---
 
