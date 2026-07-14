@@ -186,7 +186,7 @@ flutter run -d chrome
 - [x] Genre support
 - [x] Responsive layouts
 - [x] Robust error handling
-- [ ] Production deployment
+- [x] Production deployment
 
 ## License
 

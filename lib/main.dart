@@ -18,7 +18,7 @@ class _MusicDetectorAppState extends State<MusicDetectorApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Music Detector',
+      title: 'Music Finder',
       debugShowCheckedModeBanner: false,
       // Deep elegant slate setups for rich look
       theme: ThemeData(
