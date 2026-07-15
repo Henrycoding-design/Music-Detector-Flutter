@@ -21,6 +21,16 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = false;
   Key _historyKey = UniqueKey();
 
+  void _onLoadingChanged(bool loading) {
+    setState(() {
+      _isLoading = loading;
+      if (!loading) {
+        // Automatically refresh history when a recognition task completes
+        _historyKey = UniqueKey();
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -59,7 +69,7 @@ class _HomeScreenState extends State<HomeScreen> {
               width: 1,
               thickness: 1,
               color: theme.colorScheme.outlineVariant,
-              ),
+            ),
           ),
           IconButton(
             icon: Icon(widget.isDarkMode ? Icons.light_mode_rounded : Icons.dark_mode_rounded),
@@ -69,17 +79,14 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(width: 12),
         ],
       ),
+      // Switching the WHOLE view for both Mobile and Wide layouts
       body: IndexedStack(
         index: _showHistory ? 1 : 0,
         children: [
           RecognitionPage(
             onToggleTheme: widget.onToggleTheme,
             isDarkMode: widget.isDarkMode,
-            onLoadingChanged: (loading) {
-              setState(() {
-                _isLoading = loading;
-              });
-            },
+            onLoadingChanged: _onLoadingChanged,
           ),
           HistoryPage(
             key: _historyKey,
