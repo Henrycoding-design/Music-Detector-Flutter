@@ -1,10 +1,16 @@
+import 'dart:async';
+import 'dart:io' show Directory, Platform;
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb, Uint8List;
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:permission_handler/permission_handler.dart';
+import 'package:record/record.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../services/api_service.dart';
-import '../services/parse_result.dart';
-import '../services/history_service.dart';
 import '../models/history_item.dart';
+import '../services/api_service.dart';
+import '../services/history_service.dart';
+import '../services/parse_result.dart';
 import 'loading_animation.dart';
 
 class RecognitionPage extends StatefulWidget {
@@ -23,7 +29,8 @@ class RecognitionPage extends StatefulWidget {
   State<RecognitionPage> createState() => _RecognitionPageState();
 }
 
-class _RecognitionPageState extends State<RecognitionPage> with SingleTickerProviderStateMixin {
+class _RecognitionPageState extends State<RecognitionPage>
+    with SingleTickerProviderStateMixin {
   // Input Selection State
   PlatformFile? _selectedFile;
   final TextEditingController _urlController = TextEditingController();
@@ -41,6 +48,17 @@ class _RecognitionPageState extends State<RecognitionPage> with SingleTickerProv
   bool _urlTouched = false;
   bool _submitted = false;
 
+  // Recording State & Controller
+  late final AudioRecorder _audioRecorder;
+  bool _isRecording = false;
+  bool _recordFinished = false;
+  String? _recordPath;
+  Uint8List? _recordBytes;
+  Timer? _recordTimer;
+  int _recordedSeconds = 0;
+  static const int _minRecordSeconds = 15;
+  static const int _maxRecordSeconds = 60;
+
   // To fetch tab index
   late final TabController _tabController;
   bool _isFileHovered = false;
@@ -48,18 +66,144 @@ class _RecognitionPageState extends State<RecognitionPage> with SingleTickerProv
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _audioRecorder = AudioRecorder();
+    _tabController = TabController(length: 3, vsync: this);
 
     _tabController.addListener(() {
-      setState(() {});
+      if (_tabController.indexIsChanging) {
+        setState(() {
+          _submitted = false;
+          _errorMessage = null;
+        });
+      } else {
+        setState(() {});
+      }
     });
   }
 
   @override
   void dispose() {
+    _recordTimer?.cancel();
+    _audioRecorder.dispose();
     _tabController.dispose();
     _urlController.dispose();
     super.dispose();
+  }
+
+  Future<void> _startRecording() async {
+    final hasPermission = await _audioRecorder.hasPermission();
+    if (!hasPermission) {
+      final status = await Permission.microphone.request();
+      if (!status.isGranted) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content:
+                  Text("Microphone permission is required to record audio."),
+            ),
+          );
+        }
+        return;
+      }
+    }
+
+    _recordTimer?.cancel();
+    setState(() {
+      _isRecording = true;
+      _recordFinished = false;
+      _recordPath = null;
+      _recordBytes = null;
+      _recordedSeconds = 0;
+      _errorMessage = null;
+      _guesses.clear();
+    });
+
+    String? path;
+    if (!kIsWeb) {
+      final tempDir = Directory.systemTemp;
+      path =
+          '${tempDir.path}${Platform.pathSeparator}rec_${DateTime.now().millisecondsSinceEpoch}.m4a';
+    }
+
+    try {
+      await _audioRecorder.start(
+        const RecordConfig(encoder: AudioEncoder.aacLc),
+        path: path ?? '',
+      );
+
+      _recordTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        if (!mounted) return;
+        setState(() {
+          _recordedSeconds++;
+        });
+
+        if (_recordedSeconds >= _maxRecordSeconds) {
+          _stopRecording();
+        }
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error starting recording: $e")),
+        );
+        setState(() {
+          _isRecording = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _stopRecording() async {
+    _recordTimer?.cancel();
+    _recordTimer = null;
+
+    if (_isRecording) {
+      try {
+        final path = await _audioRecorder.stop();
+        Uint8List? bytes;
+        if (kIsWeb && path != null) {
+          try {
+            final res = await http.get(Uri.parse(path));
+            bytes = res.bodyBytes;
+          } catch (_) {}
+        }
+
+        if (mounted) {
+          setState(() {
+            _isRecording = false;
+            _recordFinished = true;
+            _recordPath = path;
+            _recordBytes = bytes;
+          });
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Error stopping recording: $e")),
+          );
+          setState(() {
+            _isRecording = false;
+          });
+        }
+      }
+    }
+  }
+
+  Future<void> _resetRecording() async {
+    _recordTimer?.cancel();
+    _recordTimer = null;
+    if (_isRecording) {
+      try {
+        await _audioRecorder.stop();
+      } catch (_) {}
+    }
+    setState(() {
+      _isRecording = false;
+      _recordFinished = false;
+      _recordPath = null;
+      _recordBytes = null;
+      _recordedSeconds = 0;
+    });
   }
 
   Future<void> _pickAudioFile() async {
@@ -84,7 +228,8 @@ class _RecognitionPageState extends State<RecognitionPage> with SingleTickerProv
   }
 
   // Unified request handling pipeline
-  Future<void> _executeRecognition(Future<dynamic> Function() apiCall, bool isUrl) async {
+  Future<void> _executeRecognition(
+      Future<dynamic> Function() apiCall, bool isUrl) async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -100,9 +245,14 @@ class _RecognitionPageState extends State<RecognitionPage> with SingleTickerProv
       });
 
       // Save to local history immediately after successful recognition
-      final input = isUrl 
-          ? _urlController.text.trim() 
-          : (_selectedFile?.name ?? 'Unknown file');
+      final String input;
+      if (isUrl) {
+        input = _urlController.text.trim();
+      } else if (_tabController.index == 2) {
+        input = 'Voice Recording (${_recordedSeconds}s)';
+      } else {
+        input = _selectedFile?.name ?? 'Unknown file';
+      }
 
       await HistoryService.save(
         HistoryItem(
@@ -129,25 +279,55 @@ class _RecognitionPageState extends State<RecognitionPage> with SingleTickerProv
       _submitted = true;
     });
 
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-
     if (_tabController.index == 0) {
-      setState(() { // clear url input
+      if (!_formKey.currentState!.validate()) {
+        return;
+      }
+      setState(() {
+        // clear url input
         _urlController.clear();
       });
       _executeRecognition(
         () => ApiService.recognize(_selectedFile!),
         false, // is not from URL
       );
-    } else if (_tabController.index == 1){
-      setState(() { // clear file input
+    } else if (_tabController.index == 1) {
+      if (!_formKey.currentState!.validate()) {
+        return;
+      }
+      setState(() {
+        // clear file input
         _selectedFile = null;
       });
       _executeRecognition(
         () => ApiService.urlRecognize(_urlController.text.trim()),
         true, // is from URL
+      );
+    } else if (_tabController.index == 2) {
+      if (_isRecording) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+                "Recording in progress. Will stop recording after 59s."),
+          ),
+        );
+        return;
+      }
+      if (!_recordFinished || _recordPath == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+                "Please record an audio sample (minimum 15 seconds) first."),
+          ),
+        );
+        return;
+      }
+      if (!_formKey.currentState!.validate()) {
+        return;
+      }
+      _executeRecognition(
+        () => ApiService.recordingRecognize(_recordPath!, bytes: _recordBytes),
+        false,
       );
     }
   }
@@ -174,7 +354,8 @@ class _RecognitionPageState extends State<RecognitionPage> with SingleTickerProv
               Icon(
                 Icons.music_note_rounded,
                 size: 80,
-                color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
+                color:
+                    theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
               ),
               const SizedBox(height: 16),
               Text(
@@ -187,7 +368,7 @@ class _RecognitionPageState extends State<RecognitionPage> with SingleTickerProv
               ),
               const SizedBox(height: 8),
               Text(
-                "Select an audio file or paste a link, then click 'Identify Track' to see results.",
+                "Select an audio file, paste a link, or record audio, then click 'Identify Track' to see results.",
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 14,
@@ -233,20 +414,31 @@ class _RecognitionPageState extends State<RecognitionPage> with SingleTickerProv
           ),
           labelColor: theme.colorScheme.primary,
           unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
-          labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+          labelStyle:
+              const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
           tabs: const [
-            Tab(height: 44, icon: Icon(Icons.audio_file_rounded, size: 20), text: "Audio File"),
-            Tab(height: 44, icon: Icon(Icons.link_rounded, size: 20), text: "Stream URL"),
+            Tab(
+                height: 44,
+                icon: Icon(Icons.audio_file_rounded, size: 20),
+                text: "Audio File"),
+            Tab(
+                height: 44,
+                icon: Icon(Icons.link_rounded, size: 20),
+                text: "Stream URL"),
+            Tab(
+                height: 44,
+                icon: Icon(Icons.mic_rounded, size: 20),
+                text: "Record"),
           ],
         ),
       ),
       const SizedBox(height: 20),
-      
+
       // Wrap entire TabBarView in Form
-      Form (
+      Form(
         key: _formKey,
         child: SizedBox(
-          height: 145,
+          height: 160,
           child: TabBarView(
             controller: _tabController,
             physics: const NeverScrollableScrollPhysics(),
@@ -283,8 +475,10 @@ class _RecognitionPageState extends State<RecognitionPage> with SingleTickerProv
                               curve: Curves.easeInOut,
                               decoration: BoxDecoration(
                                 color: _isFileHovered
-                                    ? theme.colorScheme.primary.withValues(alpha: 0.10)
-                                    : theme.colorScheme.primary.withValues(alpha: 0.04),
+                                    ? theme.colorScheme.primary
+                                        .withValues(alpha: 0.10)
+                                    : theme.colorScheme.primary
+                                        .withValues(alpha: 0.04),
                                 border: Border.all(
                                   color: state.hasError
                                       ? theme.colorScheme.error
@@ -313,7 +507,8 @@ class _RecognitionPageState extends State<RecognitionPage> with SingleTickerProv
                                   ),
                                   const SizedBox(height: 8),
                                   Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 16),
                                     child: Text(
                                       _audioFileInfo(),
                                       textAlign: TextAlign.center,
@@ -332,7 +527,8 @@ class _RecognitionPageState extends State<RecognitionPage> with SingleTickerProv
                                     "Click to browse device storage",
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: theme.colorScheme.onSurfaceVariant,
+                                      color:
+                                          theme.colorScheme.onSurfaceVariant,
                                     ),
                                   ),
                                 ],
@@ -407,11 +603,180 @@ class _RecognitionPageState extends State<RecognitionPage> with SingleTickerProv
                     const SizedBox(height: 8),
                     Text(
                       "Supports direct sound streams, videos, or shared clouds.",
-                      style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 11),
+                      style: TextStyle(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          fontSize: 11),
                       textAlign: TextAlign.center,
                     ),
                   ],
                 ),
+              ),
+
+              // TAB 3: Mic Recording Tab
+              FormField<String>(
+                autovalidateMode: AutovalidateMode.onUserInteraction,
+                validator: (_) {
+                  if (_tabController.index != 2) return null;
+                  if (!_submitted) return null;
+                  if (_isRecording) {
+                    return "Recording is in progress. Please wait until at least 15s before stopping.";
+                  }
+                  if (!_recordFinished || _recordPath == null) {
+                    return "Please record audio (at least 15 seconds) first.";
+                  }
+                  return null;
+                },
+                builder: (state) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary
+                                .withValues(alpha: 0.04),
+                            border: Border.all(
+                              color: state.hasError
+                                  ? theme.colorScheme.error
+                                  : (_isRecording
+                                      ? theme.colorScheme.primary
+                                      : theme.colorScheme.outlineVariant),
+                              width: 1.5,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              if (!_isRecording && !_recordFinished) ...[
+                                IconButton.filledTonal(
+                                  onPressed:
+                                      _isLoading ? null : _startRecording,
+                                  icon: const Icon(Icons.mic_rounded, size: 32),
+                                  iconSize: 32,
+                                  style: IconButton.styleFrom(
+                                    padding: const EdgeInsets.all(14),
+                                    backgroundColor:
+                                        theme.colorScheme.primaryContainer,
+                                    foregroundColor: theme.colorScheme.primary,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  "Tap to Start Recording",
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: theme.colorScheme.onSurface,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  "Minimum 15s • Maximum 60s",
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ] else if (_isRecording) ...[
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(
+                                      Icons.fiber_manual_record_rounded,
+                                      color: Colors.red,
+                                      size: 18,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      "Recording... ${_recordedSeconds.toString().padLeft(2, '0')}s / 60s",
+                                      style: const TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: LinearProgressIndicator(
+                                    value: _recordedSeconds / 60.0,
+                                    backgroundColor: theme
+                                        .colorScheme.surfaceContainerHighest,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      _recordedSeconds >= _minRecordSeconds
+                                          ? Colors.green
+                                          : theme.colorScheme.primary,
+                                    ),
+                                    minHeight: 6,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                FilledButton.icon(
+                                  onPressed:
+                                      _recordedSeconds >= _minRecordSeconds
+                                          ? _stopRecording
+                                          : null,
+                                  icon: const Icon(Icons.stop_rounded),
+                                  label: Text(
+                                    _recordedSeconds >= _minRecordSeconds
+                                        ? "Stop Recording"
+                                        : "Stop (available in ${_minRecordSeconds - _recordedSeconds}s)",
+                                  ),
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: Colors.redAccent,
+                                    foregroundColor: Colors.white,
+                                    disabledBackgroundColor: theme
+                                        .colorScheme.onSurface
+                                        .withValues(alpha: 0.12),
+                                  ),
+                                ),
+                              ] else if (_recordFinished) ...[
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.check_circle_rounded,
+                                        color: Colors.green, size: 24),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      "Recorded ${_recordedSeconds}s sample",
+                                      style: const TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                TextButton.icon(
+                                  onPressed:
+                                      _isLoading ? null : _resetRecording,
+                                  icon: const Icon(Icons.refresh_rounded,
+                                      size: 18),
+                                  label: const Text("Record Again"),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                      if (state.hasError)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6, left: 12),
+                          child: Text(
+                            state.errorText!,
+                            style: TextStyle(
+                              color: theme.colorScheme.error,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                },
               ),
             ],
           ),
@@ -423,20 +788,22 @@ class _RecognitionPageState extends State<RecognitionPage> with SingleTickerProv
       FilledButton.icon(
         onPressed: _isLoading ? null : _recognize,
         icon: const Icon(Icons.music_note_rounded),
-        label: const Text("Identify Track", style: TextStyle(fontWeight: FontWeight.bold)),
+        label: const Text("Identify Track",
+            style: TextStyle(fontWeight: FontWeight.bold)),
         style: FilledButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         ),
       ),
       const SizedBox(height: 12),
 
-      if (_isLoading) const Center(
-        child: GlowingLoadingIndicator(
+      if (_isLoading)
+        const Center(
+            child: GlowingLoadingIndicator(
           title: "Recognizing song...",
           subtitle: "This may take up to 2 minutes for some URLs.",
-        )
-      ),
+        )),
     ];
 
     // Single result card view template function
@@ -447,7 +814,8 @@ class _RecognitionPageState extends State<RecognitionPage> with SingleTickerProv
         shadowColor: Colors.black.withValues(alpha: 0.04),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
+          side: BorderSide(
+              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5)),
         ),
         clipBehavior: Clip.antiAlias,
         child: Column(
@@ -465,10 +833,13 @@ class _RecognitionPageState extends State<RecognitionPage> with SingleTickerProv
                       ? Image.network(
                           guess.cover!,
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              Icon(Icons.music_note_rounded, size: 40, color: theme.colorScheme.primary),
+                          errorBuilder: (context, error, stackTrace) => Icon(
+                              Icons.music_note_rounded,
+                              size: 40,
+                              color: theme.colorScheme.primary),
                         )
-                      : Icon(Icons.music_note_rounded, size: 40, color: theme.colorScheme.primary),
+                      : Icon(Icons.music_note_rounded,
+                          size: 40, color: theme.colorScheme.primary),
                 ),
                 // Right Column Meta Content
                 Expanded(
@@ -479,25 +850,43 @@ class _RecognitionPageState extends State<RecognitionPage> with SingleTickerProv
                       children: [
                         Text(
                           guess.title,
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 4),
-                        Text("By ${guess.artist}", maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-                        Text(guess.album, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant)),
+                        Text("By ${guess.artist}",
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                fontSize: 13, fontWeight: FontWeight.w500)),
+                        Text(guess.album,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                fontSize: 12,
+                                color: theme.colorScheme.onSurfaceVariant)),
                         if (guess.releaseDate != null)
-                          Text("Released: ${guess.releaseDate}", style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant)),
+                          Text("Released: ${guess.releaseDate}",
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: theme.colorScheme.onSurfaceVariant)),
                         const SizedBox(height: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: theme.colorScheme.primary.withValues(alpha: 0.08),
+                            color: theme.colorScheme.primary
+                                .withValues(alpha: 0.08),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
                             "${(guess.confidence * 100).toStringAsFixed(0)}% Match Precision",
-                            style: TextStyle(color: theme.colorScheme.primary, fontSize: 11, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                                color: theme.colorScheme.primary,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold),
                           ),
                         ),
                       ],
@@ -520,20 +909,34 @@ class _RecognitionPageState extends State<RecognitionPage> with SingleTickerProv
                             children: [
                               ...guess.genres.take(isWide ? 5 : 2).map((genre) {
                                 return Chip(
-                                  label: Text(genre, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500)),
-                                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                  backgroundColor: theme.colorScheme.surfaceContainerHigh,
+                                  label: Text(genre,
+                                      style: const TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w500)),
+                                  materialTapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                  backgroundColor:
+                                      theme.colorScheme.surfaceContainerHigh,
                                   side: BorderSide.none,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8)),
                                 );
                               }),
-                              if ((isWide && guess.genres.length > 5) || (!isWide && guess.genres.length > 2))
+                              if ((isWide && guess.genres.length > 5) ||
+                                  (!isWide && guess.genres.length > 2))
                                 Chip(
-                                  label: Text('+${guess.genres.length - (isWide ? 5 : 3)}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500)),
-                                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                  backgroundColor: theme.colorScheme.surfaceContainerHigh,
+                                  label: Text(
+                                      '+${guess.genres.length - (isWide ? 5 : 3)}',
+                                      style: const TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w500)),
+                                  materialTapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                  backgroundColor:
+                                      theme.colorScheme.surfaceContainerHigh,
                                   side: BorderSide.none,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8)),
                                 ),
                             ].toList(),
                           )
@@ -543,7 +946,9 @@ class _RecognitionPageState extends State<RecognitionPage> with SingleTickerProv
                     TextButton.icon(
                       onPressed: () => _launchUrl(guess.shazamUrl!),
                       icon: const Icon(Icons.open_in_new_rounded, size: 16),
-                      label: const Text("Shazam", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                      label: const Text("Shazam",
+                          style: TextStyle(
+                              fontSize: 13, fontWeight: FontWeight.bold)),
                     ),
                 ],
               ),
@@ -559,14 +964,17 @@ class _RecognitionPageState extends State<RecognitionPage> with SingleTickerProv
             elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
-              side: BorderSide(color: theme.colorScheme.error.withValues(alpha: 0.2)),
+              side: BorderSide(
+                  color: theme.colorScheme.error.withValues(alpha: 0.2)),
             ),
             child: Center(
               child: Padding(
                 padding: const EdgeInsets.all(20),
                 child: Text(
                   _errorMessage!,
-                  style: TextStyle(color: theme.colorScheme.onErrorContainer, fontWeight: FontWeight.w500),
+                  style: TextStyle(
+                      color: theme.colorScheme.onErrorContainer,
+                      fontWeight: FontWeight.w500),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -583,14 +991,17 @@ class _RecognitionPageState extends State<RecognitionPage> with SingleTickerProv
             elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
-              side: BorderSide(color: theme.colorScheme.error.withValues(alpha: 0.2)),
+              side: BorderSide(
+                  color: theme.colorScheme.error.withValues(alpha: 0.2)),
             ),
             child: Center(
               child: Padding(
                 padding: const EdgeInsets.all(20),
                 child: Text(
                   _errorMessage!,
-                  style: TextStyle(color: theme.colorScheme.onErrorContainer, fontWeight: FontWeight.w500),
+                  style: TextStyle(
+                      color: theme.colorScheme.onErrorContainer,
+                      fontWeight: FontWeight.w500),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -600,7 +1011,8 @@ class _RecognitionPageState extends State<RecognitionPage> with SingleTickerProv
             ? _buildEmptyResultsView(theme)
             : ListView.builder(
                 itemCount: _guesses.length,
-                itemBuilder: (context, index) => buildGuessCard(_guesses[index]),
+                itemBuilder: (context, index) =>
+                    buildGuessCard(_guesses[index]),
               );
 
     if (isWide) {
@@ -614,7 +1026,8 @@ class _RecognitionPageState extends State<RecognitionPage> with SingleTickerProv
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 600),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: inputWidgets,
@@ -635,7 +1048,8 @@ class _RecognitionPageState extends State<RecognitionPage> with SingleTickerProv
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 600),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [

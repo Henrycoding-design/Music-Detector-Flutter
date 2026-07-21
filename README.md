@@ -1,7 +1,7 @@
 <h1 align="center">🎵 Music Finder</h1>
 
 <p align="center">
-A cross-platform Flutter client for recognizing music from local audio files and public media URLs.
+A cross-platform Flutter client for recognizing music from live microphone recordings, local audio files, and public media URLs.
 Designed with Material Design 3 and built to work seamlessly with the <a href="https://github.com/Henrycoding-design/Music-Detector-Backend">Music Detector Backend</a>.
 </p>
 
@@ -17,10 +17,11 @@ Designed with Material Design 3 and built to work seamlessly with the <a href="h
 
 ## Overview
 
-Music Finder provides a modern, responsive interface for identifying songs from either uploaded audio files or publicly accessible media URLs. The application communicates with the [Music Detector Backend](https://github.com/Henrycoding-design/Music-Detector-Backend) through a lightweight HTTP API and presents detailed recognition results in a clean, intuitive interface.
+Music Finder provides a modern, responsive interface for identifying songs from live microphone recordings, uploaded audio files, or publicly accessible media URLs. The application communicates with the [Music Detector Backend](https://github.com/Henrycoding-design/Music-Detector-Backend) through a lightweight HTTP API and presents detailed recognition results in a clean, intuitive interface.
 
 ## Features
 
+- Record live audio directly using your device microphone (15s–60s sample capture).
 - Upload audio files directly from your device.
 - Recognize songs from public media URLs including YouTube, TikTok, Instagram, and SoundCloud.
 - Responsive Material Design 3 interface.
@@ -61,9 +62,13 @@ Music Finder provides a modern, responsive interface for identifying songs from 
   <img src="assets/screenshots/dark-mode5.png" alt="Recognition" width="94.5%">
 </p>
 
+<p align="center">
+  <img src="assets/screenshots/light-mode4.png" alt="Recognition" width="94.5%">
+</p>
+
 ## Backend API
 
-Music Finder communicates with the Music Detector Backend using two endpoints.
+Music Finder communicates with the Music Detector Backend using three endpoints.
 
 ### Audio Recognition
 
@@ -85,7 +90,16 @@ Content-Type: application/json
 }
 ```
 
-Both endpoints return the same response structure.
+### Recording Recognition
+
+```http
+POST /recordingRecognize
+Content-Type: multipart/form-data
+
+file=<audio recording file>
+```
+
+All endpoints return the same response structure.
 
 ```json
 {
@@ -113,7 +127,7 @@ Both endpoints return the same response structure.
 | Language | Dart |
 | UI | Material Design 3 |
 | Networking | HTTP |
-| Packages | file_picker, url_launcher, shared_preferences |
+| Packages | file_picker, url_launcher, shared_preferences, record, permission_handler |
 
 ## Project Structure
 
@@ -184,6 +198,7 @@ flutter run -d chrome
 - [x] Basic UI interface
 - [x] Audio file recognition
 - [x] URL recognition
+- [x] Live recording recognition
 - [x] Backend integration
 - [x] Recognition history
 - [x] Album artwork
