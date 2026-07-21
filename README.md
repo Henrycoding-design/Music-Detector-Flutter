@@ -62,6 +62,10 @@ Music Finder provides a modern, responsive interface for identifying songs from 
   <img src="assets/screenshots/dark-mode5.png" alt="Recognition" width="94.5%">
 </p>
 
+<p align="center">
+  <img src="assets/screenshots/light-mode4.png" alt="Recognition" width="94.5%">
+</p>
+
 ## Backend API
 
 Music Finder communicates with the Music Detector Backend using three endpoints.
