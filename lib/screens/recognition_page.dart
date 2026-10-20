@@ -602,7 +602,7 @@ class _RecognitionPageState extends State<RecognitionPage>
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      "Supports direct sound streams, videos, or shared clouds.",
+                      "Supports direct sound streams, videos, or shared clouds with duration <= 8 mins.",
                       style: TextStyle(
                           color: theme.colorScheme.onSurfaceVariant,
                           fontSize: 11),
