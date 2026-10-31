@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/home_screen.dart';
+import 'services/theme_color_stub.dart'
+    if (dart.library.js_interop) 'services/theme_color_web.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,6 +26,7 @@ class _MusicDetectorAppState extends State<MusicDetectorApp> {
   void initState() {
     super.initState();
     _isDarkMode = widget.initialDarkMode ?? true;
+    setBrowserThemeColor(_isDarkMode);
     if (widget.initialDarkMode == null) {
       _loadThemeFromPrefs();
     }
@@ -36,6 +39,7 @@ class _MusicDetectorAppState extends State<MusicDetectorApp> {
       setState(() {
         _isDarkMode = isDark;
       });
+      setBrowserThemeColor(_isDarkMode);
     }
   }
 
