@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/history_item.dart';
 import '../services/history_service.dart';
@@ -103,6 +104,23 @@ class _HistoryPageState extends State<HistoryPage> {
     }
   }
 
+  Widget _platformIcon({
+    required FaIconData icon,
+    required Color color,
+    required String? url,
+    required String tooltip,
+  }) {
+    if (url == null || url.isEmpty) return const SizedBox.shrink();
+
+    return IconButton(
+      onPressed: () => _launchUrl(url),
+      tooltip: tooltip,
+      icon: FaIcon(icon, size: 18, color: color),
+      visualDensity: VisualDensity.compact,
+      padding: EdgeInsets.all(8),
+      constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+    );
+  }
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -205,117 +223,151 @@ class _HistoryPageState extends State<HistoryPage> {
                     ),
                     clipBehavior: Clip.antiAlias,
                     child: InkWell(
-                      onTap: (guess?.shazamUrl != null && guess!.shazamUrl!.isNotEmpty)
-                          ? () => _launchUrl(guess.shazamUrl!)
+                      onTap: (guess?.links?.youtube != null && guess!.links!.youtube!.isNotEmpty)
+                          ? () => _launchUrl(guess.links!.youtube!)
                           : null,
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Left Column Album Art Container
-                          Container(
-                            width: 100,
-                            height: 100,
-                            color: theme.colorScheme.surfaceContainerHighest,
-                            child: guess?.cover != null && guess!.cover!.isNotEmpty
-                                ? Image.network(
-                                    guess.cover!,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) =>
-                                        Icon(Icons.music_note_rounded, size: 32, color: theme.colorScheme.primary),
-                                  )
-                                : Icon(Icons.music_note_rounded, size: 32, color: theme.colorScheme.primary),
-                          ),
-                          // Right Content
-                          Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.all(12),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              "🎵 ${guess?.title ?? 'Unknown Title'}",
-                                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              guess?.artist ?? 'Unknown Artist',
-                                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              "Album: ${guess?.album ?? 'Unknown Album'}",
-                                              style: TextStyle(fontSize: 11, color: theme.colorScheme.onSurfaceVariant),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ],
+                      child: IntrinsicHeight(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // Left Column Album Art Container
+                            Container(
+                              width: 100,
+                              height: 100,
+                              color: theme.colorScheme.surfaceContainerHighest,
+                              child: guess?.cover != null && guess!.cover!.isNotEmpty
+                                  ? Image.network(
+                                      guess.cover!,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) =>
+                                          Icon(Icons.music_note_rounded, size: 32, color: theme.colorScheme.primary),
+                                    )
+                                  : Icon(Icons.music_note_rounded, size: 32, color: theme.colorScheme.primary),
+                            ),
+                            // Right Content
+                            Expanded(
+                              child: Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                "🎵 ${guess?.title ?? 'Unknown Title'}",
+                                                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                guess?.artist ?? 'Unknown Artist',
+                                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                "Album: ${guess?.album ?? 'Unknown Album'}",
+                                                style: TextStyle(fontSize: 11, color: theme.colorScheme.onSurfaceVariant),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ],
+                                          ),
                                         ),
-                                      ),
-                                      // Trailing delete button
-                                      IconButton(
-                                        icon: const Icon(Icons.delete_outline_rounded, size: 20),
-                                        onPressed: () => _deleteEntry(index),
-                                        color: theme.colorScheme.error.withValues(alpha: 0.7),
-                                        tooltip: "Delete Search",
-                                        padding: EdgeInsets.zero,
-                                        constraints: const BoxConstraints(),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Divider(height: 1, color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4)),
-                                  const SizedBox(height: 6),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Expanded(
-                                        child: Row(
-                                          children: [
-                                            Icon(
-                                              item.isUrl ? Icons.link_rounded : Icons.audio_file_rounded,
-                                              size: 12,
-                                              color: theme.colorScheme.primary,
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Expanded(
-                                              child: Text(
-                                                "Source: ${item.input}",
+                                        // Trailing delete button
+                                        IconButton(
+                                          icon: const Icon(Icons.delete_outline_rounded, size: 20),
+                                          onPressed: () => _deleteEntry(index),
+                                          color: theme.colorScheme.error.withValues(alpha: 0.7),
+                                          tooltip: "Delete Search",
+                                          padding: EdgeInsets.zero,
+                                          constraints: const BoxConstraints(),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Divider(
+                                        height: 1,
+                                        color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4)),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                      children: [
+                                        // Left: source + timestamp stacked
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  Icon(
+                                                    item.isUrl ? Icons.link_rounded : Icons.audio_file_rounded,
+                                                    size: 12,
+                                                    color: theme.colorScheme.primary,
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Expanded(
+                                                    child: Text(
+                                                      item.input,
+                                                      maxLines: 1,
+                                                      overflow: TextOverflow.ellipsis,
+                                                      style: TextStyle(
+                                                        fontSize: 10,
+                                                        color: theme.colorScheme.onSurfaceVariant,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                _formatTimestamp(item.timestamp),
                                                 style: TextStyle(
                                                   fontSize: 10,
-                                                  color: theme.colorScheme.onSurfaceVariant,
-                                                  overflow: TextOverflow.ellipsis,
+                                                  color: theme.colorScheme.onSurfaceVariant
+                                                      .withValues(alpha: 0.8),
                                                 ),
                                               ),
-                                            ),
-                                          ],
+                                            ],
+                                          ),
                                         ),
-                                      ),
-                                      Text(
-                                        _formatTimestamp(item.timestamp),
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          color: theme.colorScheme.onSurfaceVariant,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                                        // Right: platform icons
+                                        if (guess?.links != null) ...[
+                                          const SizedBox(width: 8),
+                                          _platformIcon(
+                                            icon: FontAwesomeIcons.spotify,
+                                            color: const Color(0xFF1DB954),
+                                            url: guess!.links!.spotify,
+                                            tooltip: 'Search on Spotify',
+                                          ),
+                                          _platformIcon(
+                                            icon: FontAwesomeIcons.apple,
+                                            color: const Color(0xFFFA243C),
+                                            url: guess.links!.appleMusic,
+                                            tooltip: 'Open in Apple Music',
+                                          ),
+                                          _platformIcon(
+                                            icon: FontAwesomeIcons.youtube,
+                                            color: const Color(0xFFFF0000),
+                                            url: guess.links!.youtube,
+                                            tooltip: 'Open in YouTube',
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   );

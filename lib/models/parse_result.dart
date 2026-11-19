@@ -8,6 +8,7 @@ class SongGuess {
   final List<String> genres;
   final String? cover;
   final String? shazamUrl;
+  final SongLinks? links;
 
   SongGuess({
     required this.confidence,
@@ -19,6 +20,7 @@ class SongGuess {
     required this.genres,
     this.cover,
     this.shazamUrl,
+    this.links,
   });
 
   Map<String, dynamic> toJson() {
@@ -32,6 +34,7 @@ class SongGuess {
       'genres': genres,
       'cover': cover,
       'shazamUrl': shazamUrl,
+      'links': links?.toJson(),
     };
   }
 
@@ -46,6 +49,31 @@ class SongGuess {
       genres: List<String>.from(json['genres'] ?? []),
       cover: json['cover'] as String?,
       shazamUrl: json['shazamUrl'] as String?,
+      links: json['links'] is Map<String, dynamic>
+        ? SongLinks.fromJson(json['links'] as Map<String, dynamic>)
+        : null,
     );
   }
+}
+
+class SongLinks {
+  final String? youtube;
+  final String? spotify;
+  final String? appleMusic;
+
+  SongLinks({this.youtube, this.spotify, this.appleMusic});
+
+  factory SongLinks.fromJson(Map<String, dynamic> json) {
+    return SongLinks(
+      youtube: json['youtube'] as String?,
+      spotify: json['spotify'] as String?,
+      appleMusic: json['appleMusic'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'youtube': youtube,
+    'spotify': spotify,
+    'appleMusic': appleMusic,
+  };
 }
