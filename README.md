@@ -36,14 +36,15 @@ Music Finder provides a modern, responsive interface for identifying songs from 
   - Genres
   - Confidence score
   - Direct Shazam link
+  - Spotify/Youtube/Apple Music links
 - Reliable backend communication with graceful error handling.
 
 > [!NOTE] 
 > Recognition history is stored locally on the device, allowing recent searches to remain available after refreshing or reopening the application.
 
-## Gallery
+## Gallery (*New: v2.7.0 UI*)
 
-<p align="center">
+<!-- <p align="center">
   <img src="assets/screenshots/dark-mode2.png" width="47%" alt="Dark Home">
   <img src="assets/screenshots/light-mode1.png" width="47%" alt="Light Home">
 </p>
@@ -64,6 +65,24 @@ Music Finder provides a modern, responsive interface for identifying songs from 
 
 <p align="center">
   <img src="assets/screenshots/light-mode4.png" alt="Recognition" width="94.5%">
+</p> -->
+
+<p align="center">
+  <img src="assets/screenshots/dark-mode7.png" width="47%" alt="Dark Home">
+  <img src="assets/screenshots/light-mode6.png" width="47%" alt="Light Home">
+</p>
+
+<p align="center">
+  <img src="assets/screenshots/dark-mode8.png" width="47%" alt="Recognition">
+  <img src="assets/screenshots/light-mode7.png" width="47%" alt="Recognition">
+</p>
+
+<p align="center">
+  <img src="assets/screenshots/light-mode5.png" alt="Recognition" width="94.5%">
+</p>
+
+<p align="center">
+  <img src="assets/screenshots/dark-mode6.png" alt="Recognition" width="94.5%">
 </p>
 
 ## Backend API
@@ -106,14 +125,24 @@ All endpoints return the same response structure.
   "success": true,
   "result": [
     {
-      "confidence": 0.9949,
+      "confidence": 0.97910076,
       "recording": {
-        "title": "Faded (acoustic version)",
-        "artist": "Sara Farell"
+        "id": "7d45d272-2bf9-4c06-bf0c-4e42583b96f2",
+        "title": "Faded",
+        "artist": "Alan Walker",
+        "duration": 212
       },
-      "album": "Faded (acoustic version)",
-      "releaseDate": "2016-01-06",
-      "isrc": "SEWDL6141687"
+      "album": "Faded",
+      "releaseDate": "2015-12-03",
+      "isrc": "NOG841549010",
+      "genres": [ "downtempo", "electro house", "electropop", "pop" ],
+      "cover": null,
+      "shazamUrl": null,
+      "links": {
+        "spotify": "https://open.spotify.com/search/Faded%20Alan%20Walker",
+        "appleMusic": "https://music.apple.com/no/album/faded/1196294554?i=1196294581&uo=4",
+        "youtube": "https://www.youtube.com/watch?v=60ItHLz5WEA"
+      }
     }
   ]
 }
@@ -145,7 +174,9 @@ lib/
 └── services/
     ├── api_service.dart
     ├── history_service.dart
-    └── parse_result.dart
+    ├── parse_result.dart
+    ├── theme_color_stub.dart
+    └── theme_color_web.dart
 ```
 
 ## Configuration
@@ -205,6 +236,7 @@ flutter run -d chrome
 - [x] Genre support
 - [x] Responsive layouts
 - [x] Robust error handling
+- [x] Spotify/Youtube/Apple Music links/search links retrieval on each guess
 - [x] Production deployment
 
 ## License
