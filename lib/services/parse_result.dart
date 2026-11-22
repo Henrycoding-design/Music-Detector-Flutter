@@ -28,6 +28,9 @@ class ResultParser {
         genres: List<String>.from(item['genres'] ?? []),
         cover: item['cover'],
         shazamUrl: item['shazamUrl'],
+        links: item['links'] is Map
+            ? SongLinks.fromJson(Map<String, dynamic>.from(item['links'] as Map))
+            : null,
       );
     }).toList();
 

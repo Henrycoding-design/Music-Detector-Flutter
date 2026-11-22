@@ -3,6 +3,7 @@ import 'dart:io' show Directory, Platform;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, Uint8List;
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:record/record.dart';
@@ -240,6 +241,7 @@ class _RecognitionPageState extends State<RecognitionPage>
     try {
       final result = await apiCall();
       final parsedGuesses = ResultParser.parse(result);
+      // debugPrint('links: ${parsedGuesses.map((g) => g.links?.toJson()).toList()}'); debug only
       setState(() {
         _guesses = parsedGuesses;
       });
@@ -806,6 +808,24 @@ class _RecognitionPageState extends State<RecognitionPage>
         )),
     ];
 
+    Widget buildPlatformIcon({
+      required FaIconData icon,
+      required Color color,
+      required String? url,
+      required String tooltip,
+    }) {
+      if (url == null || url.isEmpty) return const SizedBox.shrink();
+
+      return IconButton(
+        onPressed: () => _launchUrl(url),
+        tooltip: tooltip,
+        icon: FaIcon(icon, size: 20, color: color),
+        visualDensity: VisualDensity.compact,
+        padding: const EdgeInsets.all(10),
+        constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+      );
+    }
+
     // Single result card view template function
     Widget buildGuessCard(SongGuess guess) {
       return Card(
@@ -942,14 +962,24 @@ class _RecognitionPageState extends State<RecognitionPage>
                           )
                         : const SizedBox.shrink(),
                   ),
-                  if (guess.shazamUrl != null && guess.shazamUrl!.isNotEmpty)
-                    TextButton.icon(
-                      onPressed: () => _launchUrl(guess.shazamUrl!),
-                      icon: const Icon(Icons.open_in_new_rounded, size: 16),
-                      label: const Text("Shazam",
-                          style: TextStyle(
-                              fontSize: 13, fontWeight: FontWeight.bold)),
-                    ),
+                  buildPlatformIcon(
+                    icon: FontAwesomeIcons.spotify,
+                    color: const Color(0xFF1DB954),
+                    url: guess.links?.spotify,
+                    tooltip: 'Search on Spotify',
+                  ),
+                  buildPlatformIcon(
+                    icon: FontAwesomeIcons.apple,
+                    color: const Color(0xFFFA243C),
+                    url: guess.links?.appleMusic,
+                    tooltip: 'Open in Apple Music',
+                  ),
+                  buildPlatformIcon(
+                    icon: FontAwesomeIcons.youtube,
+                    color: const Color(0xFFFF0000),
+                    url: guess.links?.youtube,
+                    tooltip: 'Open in YouTube',
+                  ),
                 ],
               ),
             ),
